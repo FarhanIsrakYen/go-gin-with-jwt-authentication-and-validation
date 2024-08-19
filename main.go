@@ -2,23 +2,22 @@ package main
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	_ "github.com/go-sql-driver/mysql"
+	"go-gin-with-jwt-authentication-and-validation/config"
 	"go-gin-with-jwt-authentication-and-validation/database"
 	"go-gin-with-jwt-authentication-and-validation/routes"
 	"os"
+
+	"github.com/gin-gonic/gin"
+	_ "github.com/go-sql-driver/mysql"
 )
 
+func init()  {
+	config.LoadEnvVariables()
+	database.Connect()
+	database.SyncDatabase()
+}
+
 func main() {
-	port := os.Getenv("PORT")
-
-	if port == "" {
-		port = "8000"
-	}
-
-	router := gin.New()
-	router.Use(gin.Logger())
-
 	db, err := database.Connect()
 	if err != nil {
 		fmt.Println("failed to connect to database: %v", err)
@@ -37,6 +36,15 @@ func main() {
 	}
 
 	fmt.Println("Database connection established")
+
+	port := os.Getenv("PORT")
+
+	if port == "" {
+		port = "8000"
+	}
+
+	router := gin.New()
+	router.Use(gin.Logger())
 
 	routes.Authentication(router)
 	routes.ApiRoutes(router)

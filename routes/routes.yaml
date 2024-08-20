@@ -1,0 +1,16 @@
+routes:
+  - path: /api/signup
+    method: POST
+    controller: AuthController.SignUp
+  - path: /api/login
+    method: POST
+    controller: AuthController.Login
+  - path: /api/user/:id
+    method: GET
+    controller: UserController.Get
+  - path: /api/user/:id
+    method: PUT
+    controller: UserController.Update
+  - path: /api/user/:id
+    method: DELETE
+    controller: UserController.Delete

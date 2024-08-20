@@ -7,15 +7,11 @@ import (
 )
 
 type User struct {
-	gorm.Model
-	FirstName    *string   `json:"first_name" validate:"required, min=2, max=100"`
-	LastName     *string   `json:"last_name" validate:"required, min=2, max=100"`
-	Password     *string   `json:"password" validate:"required,min=8"`
-	Email        *string   `json:"email" validate:"required,email"`
-	Phone        *string   `json:"phone" validate:"required,numeric"`
-	Token        *string   `json:"token"`
-	UserType     *string   `json:"user_type" validate:"required,eq=ROLE_ADMIN|eq=ROLE_USER"`
-	RefreshToken *string   `json:"refresh_token"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+    gorm.Model
+    Username string `gorm:"unique;not null"`
+    Password string `gorm:"not null"`
+    Email    string `gorm:"unique;not null"`
+    UserRole string `gorm:"not null"` // ROLE_ADMIN or ROLE_USER
+    CreatedAt time.Time `gorm:"autoCreateTime"`
+    UpdatedAt time.Time `gorm:"autoUpdateTime"`
 }

@@ -18,51 +18,18 @@ func init()  {
 }
 
 func main() {
-	db, err := database.Connect()
-	if err != nil {
-		fmt.Println("failed to connect to database: %v", err)
-	}
-
-	// Test the connection
-	sqlDB, err := db.DB()
-	if err != nil {
-		fmt.Println("failed to get database instance: %v", err)
-	}
-	defer sqlDB.Close()
-
-	err = sqlDB.Ping()
-	if err != nil {
-		fmt.Println("failed to ping database: %v", err)
-	}
-
-	fmt.Println("Database connection established")
-
 	port := os.Getenv("PORT")
 
 	if port == "" {
-		port = "8000"
+		port = "8080"
 	}
 
-	router := gin.New()
-	router.Use(gin.Logger())
+	router := gin.Default()
 
-	routes.Authentication(router)
-	routes.ApiRoutes(router)
+    err := routes.SetupRoutes(router)
+    if err != nil {
+        fmt.Printf("Error setting up routes: %v", err)
+    }
 
-	router.GET("/api-1", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"success": "Access granted for api-1",
-		})
-	})
-
-	router.GET("/api-2", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"success": "Access granted for api-2",
-		})
-	})
-
-	err = router.Run(":" + port)
-	if err != nil {
-		return
-	}
+	router.Run(":" + port)
 }

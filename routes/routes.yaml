@@ -1,16 +1,16 @@
 routes:
-  - path: /api/signup
+  - path: /api/guest/signup
     method: POST
     controller: AuthController.SignUp
-  - path: /api/login
+  - path: /api/guest/login
     method: POST
     controller: AuthController.Login
-  - path: /api/user/:id
+  - path: /api/user
     method: GET
-    controller: UserController.Get
-  - path: /api/user/:id
+    controller: UserController.GetUser
+  - path: /api/user
     method: PUT
-    controller: UserController.Update
-  - path: /api/user/:id
+    controller: UserController.UpdateUser
+  - path: /api/user
     method: DELETE
-    controller: UserController.Delete
+    controller: UserController.DeactivateUser

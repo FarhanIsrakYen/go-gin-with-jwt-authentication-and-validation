@@ -1,8 +1,8 @@
 package routes
 
 import (
-	"fmt"
 	"go-gin-with-jwt-authentication-and-validation/controllers"
+	"go-gin-with-jwt-authentication-and-validation/middleware"
 	"io/ioutil"
 	"log"
 	"reflect"
@@ -29,22 +29,27 @@ func SetupRoutes(r *gin.Engine) error {
     }
 
     for _, route := range routesConfig.Routes {
-		fmt.Println(route.Path)
         controllerFunc := getControllerFunction(route.Controller)
         if controllerFunc == nil {
             log.Printf("Controller function %s not found", route.Controller)
             continue
         }
 
+        routeGroup := r.Group(route.Path)
+        
+        if !strings.Contains(route.Path, "/guest") {
+            routeGroup.Use(middleware.JWTAuthMiddleware())
+        }
+
         switch route.Method {
         case "GET":
-            r.GET(route.Path, controllerFunc)
+            routeGroup.GET("", controllerFunc)
         case "POST":
-            r.POST(route.Path, controllerFunc)
+            routeGroup.POST("", controllerFunc)
         case "PUT":
-            r.PUT(route.Path, controllerFunc)
+            routeGroup.PUT("", controllerFunc)
         case "DELETE":
-            r.DELETE(route.Path, controllerFunc)
+            routeGroup.DELETE("", controllerFunc)
         default:
             log.Printf("Unsupported method %s for path %s", route.Method, route.Path)
         }

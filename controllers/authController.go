@@ -4,6 +4,8 @@ import (
 	"go-gin-with-jwt-authentication-and-validation/database"
 	"go-gin-with-jwt-authentication-and-validation/models"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -12,18 +14,19 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var jwtKey = []byte("your_secret_key")
+var jwtKey = []byte(os.Getenv("JWT_SECRET_KEY"))
 var validate = validator.New()
 const ROLE_USER = "ROLE_USER"
 const ROLE_ADMIN = "ROLE_ADMIN"
 
 type Credentials struct {
-    Username string `json:"username" validate:"required,email"`
+    Username string `json:"username" validate:"required"`
     Password string `json:"password" validate:"required,min=8"`
 }
 
 type Claims struct {
     Username string `json:"username"`
+    UserID string `json:"user_id"`
     jwt.RegisteredClaims
 }
 
@@ -86,6 +89,7 @@ func (ac AuthController) Login(c *gin.Context) {
     expirationTime := time.Now().Add(24 * time.Hour)
     claims := &Claims{
         Username: user.Username,
+        UserID: strconv.FormatUint(uint64(user.ID), 10),
         RegisteredClaims: jwt.RegisteredClaims{
             ExpiresAt: jwt.NewNumericDate(expirationTime),
         },

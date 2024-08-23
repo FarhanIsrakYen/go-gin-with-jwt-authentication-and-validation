@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"go-gin-with-jwt-authentication-and-validation/config"
 	"go-gin-with-jwt-authentication-and-validation/controllers"
 	"go-gin-with-jwt-authentication-and-validation/middleware"
 	"io/ioutil"
@@ -36,9 +37,14 @@ func SetupRoutes(r *gin.Engine) error {
         }
 
         routeGroup := r.Group(route.Path)
-        
+
         if !strings.Contains(route.Path, "/guest") {
             routeGroup.Use(middleware.JWTAuthMiddleware())
+            if strings.Contains(route.Path, "/admin") {
+                routeGroup.Use(middleware.AuthorizeRole(config.ROLE_ADMIN))
+            } else {
+                routeGroup.Use(middleware.AuthorizeRole(config.ROLE_USER))
+            }
         }
 
         switch route.Method {

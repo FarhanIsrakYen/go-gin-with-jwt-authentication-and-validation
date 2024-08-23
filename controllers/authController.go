@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"go-gin-with-jwt-authentication-and-validation/config"
 	"go-gin-with-jwt-authentication-and-validation/database"
 	"go-gin-with-jwt-authentication-and-validation/models"
 	"net/http"
@@ -16,8 +17,6 @@ import (
 
 var jwtKey = []byte(os.Getenv("JWT_SECRET_KEY"))
 var validate = validator.New()
-const ROLE_USER = "ROLE_USER"
-const ROLE_ADMIN = "ROLE_ADMIN"
 
 type Credentials struct {
     Username string `json:"username" validate:"required"`
@@ -27,6 +26,7 @@ type Credentials struct {
 type Claims struct {
     Username string `json:"username"`
     UserID string `json:"user_id"`
+    Role     string `json:"role"`
     jwt.RegisteredClaims
 }
 
@@ -54,7 +54,7 @@ func (ac AuthController) SignUp(c *gin.Context) {
         Username: credentials.Username,
         Password: string(hashedPassword),
         Email:    credentials.Username,
-        UserRole: ROLE_USER,
+        Role: config.ROLE_USER,
     }
 
     result := database.DB.Create(&user)
@@ -79,7 +79,7 @@ func (ac AuthController) Login(c *gin.Context) {
     }
 
     var user models.User
-    database.DB.Where("username = ?", credentials.Username).First(&user)
+    database.DB.Where("username = ? AND is_active = ?", credentials.Username, true)
 
     if user.ID == 0 || bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credentials.Password)) != nil {
         c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
@@ -90,6 +90,7 @@ func (ac AuthController) Login(c *gin.Context) {
     claims := &Claims{
         Username: user.Username,
         UserID: strconv.FormatUint(uint64(user.ID), 10),
+        Role:     user.Role,
         RegisteredClaims: jwt.RegisteredClaims{
             ExpiresAt: jwt.NewNumericDate(expirationTime),
         },

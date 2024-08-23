@@ -10,7 +10,7 @@ type UserRepository interface {
     CreateUser(user *models.User) (*models.User, error)
     FindUserByUsername(username string) (*models.User, error)
     UpdateUser(user *models.User) (*models.User, error)
-    DeactivateUser(userID uint) error
+    DeactivateUser(userID int) error
     FindByUserID(userID uint) (*models.User, error)
 	FindAllUsers() ([]models.User, error)
 }
@@ -45,7 +45,7 @@ func (r *userRepository) UpdateUser(user *models.User) (*models.User, error) {
     return user, nil
 }
 
-func (r *userRepository) DeactivateUser(userID uint) error {
+func (r *userRepository) DeactivateUser(userID int) error {
     if err := r.DB.Model(&models.User{}).Where("id = ?", userID).Update("is_active", false).Error; err != nil {
         return err
     }

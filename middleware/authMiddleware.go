@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"fmt"
-	"go-gin-with-jwt-authentication-and-validation/controllers"
 	"net/http"
 	"os"
 	"strings"
@@ -12,6 +11,13 @@ import (
 )
 
 var jwtKey = []byte(os.Getenv("JWT_SECRET_KEY"))
+
+type Claims struct {
+    Username string `json:"username"`
+    UserID string `json:"user_id"`
+    Role     string `json:"role"`
+    jwt.RegisteredClaims
+}
 
 func JWTAuthMiddleware() gin.HandlerFunc {
     return func(c *gin.Context) {
@@ -24,15 +30,13 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 
         // Extract token from Authorization header
         tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-        if tokenString == authHeader { // No "Bearer " prefix found
+        if tokenString == authHeader { 
             c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid Authorization header format"})
             c.Abort()
             return
         }
 
-        // Parse the token
         token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-            // Validate the signing method
             if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
                 return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
             }
@@ -45,9 +49,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
             return
         }
 
-        // Validate token claims
         if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-            fmt.Println(claims)
             userId, ok := claims["user_id"].(string)
             if !ok {
                 c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
@@ -55,32 +57,48 @@ func JWTAuthMiddleware() gin.HandlerFunc {
                 return
             }
             c.Set("userId", userId)
+            c.Set("username", claims["username"].(string))
         } else {
             c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
             c.Abort()
             return
         }
-
+        
         c.Next()
     }
 }
 
-func AdminOnly(c *gin.Context) {
-    role, exists := c.Get("role")
-    if !exists || role != "ROLE_ADMIN" {
-        c.JSON(http.StatusForbidden, gin.H{"error": "Access Denied"})
-        c.Abort()
-        return
-    }
-    c.Next()
-}
+func AuthorizeRole(allowedRoles ...string) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        tokenString := c.GetHeader("Authorization")
+        if tokenString == "" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
+            c.Abort()
+            return
+        }
 
-func UserOnly(c *gin.Context) {
-    role, exists := c.Get("role")
-    if !exists || role != controllers.ROLE_USER || role != controllers.ROLE_ADMIN {
-        c.JSON(http.StatusForbidden, gin.H{"error": "Access Denied"})
-        c.Abort()
-        return
+        tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+
+        token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+            return jwtKey, nil
+        })
+        claims, ok := token.Claims.(*Claims);
+
+        if ok && token.Valid {
+            userRole := claims.Role
+            for _, role := range allowedRoles {
+                if userRole == role {
+                    c.Next()
+                    return
+                }
+            }
+            c.JSON(http.StatusForbidden, gin.H{"error": "You don't have access to this resource"})
+            c.Abort()
+            return
+        } else {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+            c.Abort()
+            return
+        }
     }
-    c.Next()
 }

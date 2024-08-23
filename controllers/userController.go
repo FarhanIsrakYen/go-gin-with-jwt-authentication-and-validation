@@ -33,30 +33,30 @@ func (ac UserController) UpdateUser(c *gin.Context) {
         CurrentPassword string `json:"current_password"`
         NewPassword     string `json:"new_password"`
     }
-
-	if err := c.ShouldBindJSON(&updateUser); err != nil {
+    
+    if err := c.ShouldBindJSON(&updateUser); err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
         return
     }
-
+    
     userId, exists := c.Get("userId")
     if !exists {
         c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
         return
     }
-
-	var user models.User
+    
+    var user models.User
     if err := database.DB.First(&user, userId).Error; err != nil {
         c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
         return
     }
-
+    
     if updateUser.NewPassword != "" {
         if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(updateUser.CurrentPassword)); err != nil {
             c.JSON(http.StatusUnauthorized, gin.H{"error": "Current password is incorrect"})
             return
         }
-
+    
         // Hash the new password
         hashedPassword, err := bcrypt.GenerateFromPassword([]byte(updateUser.NewPassword), bcrypt.DefaultCost)
         if err != nil {
@@ -65,23 +65,25 @@ func (ac UserController) UpdateUser(c *gin.Context) {
         }
         user.Password = string(hashedPassword)
     }
-
-    // Update username if provided
+    
     if updateUser.Username != "" {
         user.Username = updateUser.Username
     }
-
-    // Save the updated user to the database
-    if err := database.DB.Model(&models.User{}).Where("user_id = ?", userId).Updates(updateUser).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
-		return
-	}
-	
-	c.JSON(http.StatusOK, gin.H{"message": "User updated successfully"})
+    
+    if err := database.DB.Save(&user).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
+        return
+    }
+    
+    c.JSON(http.StatusOK, gin.H{"message": "User updated successfully"})
 }
 
 func (ac UserController) DeactivateUser(c *gin.Context) {
-    username := c.Param("username")
+    username, exists := c.Get("username")
+    if !exists {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+        return
+    }
 
     var user models.User
     database.DB.Where("username = ?", username).First(&user)
@@ -91,6 +93,6 @@ func (ac UserController) DeactivateUser(c *gin.Context) {
         return
     }
 
-    database.DB.Delete(&user)
+    database.DB.Model(&models.User{}).Where("username = ?", username).Update("is_active", false)
     c.JSON(http.StatusOK, gin.H{"message": "User deactivated successfully"})
 }

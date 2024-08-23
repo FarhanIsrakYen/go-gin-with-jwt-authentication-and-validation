@@ -2,6 +2,8 @@ package helpers
 
 import (
 	"errors"
+	"go-gin-with-jwt-authentication-and-validation/config"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -10,7 +12,7 @@ func MatchUserTypeToUid(context *gin.Context, userId string) (err error) {
 	uid := context.GetString("uid")
 	err = nil
 
-	if userType == "ROLE_USER" || uid != userId {
+	if userType == config.ROLE_USER || uid != userId {
 		err = errors.New("access denied")
 		return err
 	}
